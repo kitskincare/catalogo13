@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo de Produtos</title>
+  
+  <!-- Importa Font Awesome para os ícones -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/all.min.css" />
+  <!-- Importa a fonte Lora -->
+  <link href="https://fonts.googleapis.com/css2?family=Lora&display=swap" rel="stylesheet">
+  
+  <!-- Inclui a biblioteca Tabletop.js via unpkg -->
+  <script src="https://unpkg.com/tabletop@1.5.1/dist/tabletop.min.js"></script>
+  
+  <style>
+    /* Reset básico */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Lora', serif;
+      background-color: #fff;
+      color: #000;
+      padding: 20px;
+      min-height: 100vh;
+      position: relative; /* Para posicionar o botão flutuante */
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+    
+    /* Botão flutuante para acessar a Sacola (canto superior direito) */
+    #floatingSacola {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      transition: background-color 0.3s ease;
+    }
+    #floatingSacola:hover {
+      background-color: #0056b3;
+    }
+    
+    /* Contêiner onde o catálogo será inserido */
+    #catalogContainer {
+      margin-top: 80px;
+    }
+    
+    /* Cada família de produtos */
+    .family-section {
+      margin-bottom: 40px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+    .family-title {
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+      padding-left: 10px;
+    }
+    
+    /* Container de produtos em grid – 6 colunas (se o espaço permitir) */
+    .product-container {
+      display: grid;
+      grid-template-columns: repeat(6, 250px);
+      gap: 20px;
+    }
+    
+    /* Estilos para cada card de produto */
+    .product-card {
+      background-color: #f8f8f8;
+      padding: 10px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .product-image {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    
+    .product-name {
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+    
+    .product-price {
+      font-size: 1em;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .product-qty {
+      width: 80px;
+      padding: 5px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    
+    /* Botão de adicionar ao carrinho (ícone da sacola) */
+    .add-to-cart {
+      background-color: #fff; /* Estado original */
+      border: 1px solid #ccc;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .add-to-cart:hover {
+      background-color: #ddd;
+    }
+    
+    .add-to-cart i {
+      font-size: 1.2em;
+      color: #111; /* Estado original */
+      transition: color 0.3s ease;
+    }
+    
+    /* Responsividade: para telas menores, a grid terá 2 colunas */
+    @media (max-width: 600px) {
+      .product-container {
+        grid-template-columns: repeat(2, 200px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Botão flutuante para acessar a página Sacola -->
+  <button id="floatingSacola" onclick="window.location.href='sacola.html'">
+    <i class="fas fa-shopping-bag"></i> Sacola
+  </button>
+  
+  <h1>Catálogo de Produtos</h1>
+  <!-- Contêiner onde o catálogo será gerado dinamicamente -->
+  <div id="catalogContainer"></div>
+  
+  <script>
+    // Inicializa o Tabletop.js quando o DOM estiver carregado
+    window.addEventListener('DOMContentLoaded', init);
+    
+    function init() {
+      Tabletop.init({
+        // URL da sua planilha publicada. Certifique-se de que ela está publicada para a web.
+        key: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwf7HWo2O-0kdzvs_uBCR4pR44mDQ8VwFsHnPE1TOP1PDZomm_YA1Lu-crCj-xE38UQPyMHMnooOtO/pubhtml?gid=0&single=true',
+        callback: showData,
+        simpleSheet: true
+      });
+    }
+    
+    // Função para agrupar os produtos por família e montar o catálogo
+    function showData(data) {
+      console.log("Dados carregados:", data);
+      
+      // Agrupa os produtos pela coluna "Family"
+      let families = {};
+      data.forEach(item => {
+        let family = item["Family"];
+        if (!families[family]) {
+          families[family] = [];
+        }
+        families[family].push(item);
+      });
+      
+      let catalogContainer = document.getElementById('catalogContainer');
+      catalogContainer.innerHTML = "";
+      
+      // Para cada família, cria uma seção com título e grid de produtos
+      for (let family in families) {
+        let familySection = document.createElement('div');
+        familySection.className = 'family-section';
+        
+        let familyTitle = document.createElement('div');
+        familyTitle.className = 'family-title';
+        familyTitle.textContent = family;
+        familySection.appendChild(familyTitle);
+        
+        let productContainer = document.createElement('div');
+        productContainer.className = 'product-container';
+        
+        families[family].forEach(product => {
+          let productCard = document.createElement('div');
+          productCard.className = 'product-card';
+          productCard.setAttribute('data-name', product["Product Name"]);
+          productCard.setAttribute('data-price', product["Price"]);
+          
+          // Imagem do produto
+          let img = document.createElement('img');
+          img.className = 'product-image';
+          img.src = product["Image"];  // Exemplo: "ANILHA SPORT PINTADA1.jpg"
+          img.alt = product["Product Name"];
+          productCard.appendChild(img);
+          
+          // Nome do produto
+          let nameP = document.createElement('p');
+          nameP.className = 'product-name';
+          nameP.textContent = product["Product Name"];
+          productCard.appendChild(nameP);
+          
+          // Preço do produto
+          let priceP = document.createElement('p');
+          priceP.className = 'product-price';
+          priceP.textContent = 'R$' + product["Price"];
+          productCard.appendChild(priceP);
+          
+          // Campo de quantidade
+          let qtyInput = document.createElement('input');
+          qtyInput.type = 'number';
+          qtyInput.className = 'product-qty';
+          qtyInput.min = '0';
+          qtyInput.value = '0';
+          productCard.appendChild(qtyInput);
+          
+          // Botão de toggle para adicionar/remover produto do carrinho
+          let addButton = document.createElement('button');
+          addButton.className = 'add-to-cart';
+          addButton.onclick = function() { toggleCart(this); };
+          let icon = document.createElement('i');
+          icon.className = 'fas fa-shopping-bag';
+          addButton.appendChild(icon);
+          productCard.appendChild(addButton);
+          
+          productContainer.appendChild(productCard);
+        });
+        
+        familySection.appendChild(productContainer);
+        catalogContainer.appendChild(familySection);
+      }
+    }
+    
+    // Função de toggle para adicionar ou remover o produto do carrinho (usando localStorage)
+    function toggleCart(btn) {
+      const card = btn.parentElement;
+      const productName = card.getAttribute('data-name');
+      const productPrice = parseFloat(card.getAttribute('data-price'));
+      const productQty = parseInt(card.querySelector('.product-qty').value) || 0;
+      
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const index = cart.findIndex(item => item.name === productName);
+      
+      if (index !== -1) {
+        // Se o produto já está no carrinho:
+        if (productQty > 0) {
+          cart[index].qty += productQty;
+          cart[index].total = cart[index].price * cart[index].qty;
+          alert("Quantidade atualizada para " + cart[index].qty + " em " + productName);
+        } else {
+          cart.splice(index, 1);
+          alert("Item removido do carrinho: " + productName);
+          btn.style.backgroundColor = "#fff";
+          btn.querySelector("i").style.color = "#111";
+          localStorage.setItem('cart', JSON.stringify(cart));
+          return;
+        }
+        localStorage.setItem('cart', JSON.stringify(cart));
+        btn.style.backgroundColor = "green";
+        btn.querySelector("i").style.color = "white";
+      } else {
+        if (productQty <= 0) {
+          alert("Selecione uma quantidade válida para adicionar ao carrinho.");
+          return;
+        }
+        const total = productPrice * productQty;
+        cart.push({ name: productName, price: productPrice, qty: productQty, total: total });
+        localStorage.setItem('cart', JSON.stringify(cart));
+        btn.style.backgroundColor = "green";
+        btn.querySelector("i").style.color = "white";
+        alert("Adicionado ao carrinho: " + productName);
+      }
+    }
+  </script>
+</body>
+</html>

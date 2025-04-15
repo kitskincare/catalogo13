@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sacola de Compras</title>
+  <!-- Importa a fonte Lora -->
+  <link href="https://fonts.googleapis.com/css2?family=Lora&display=swap" rel="stylesheet">
+  <!-- Importa Font Awesome para os ícones -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/all.min.css" />
+  <style>
+    body {
+      font-family: 'Lora', serif;
+      background-color: #fff;
+      color: #000;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    input.cart-qty {
+      width: 60px;
+      text-align: center;
+    }
+    .button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-right: 10px;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #0056b3;
+    }
+    .delete-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #d00;
+      font-size: 1em;
+      transition: color 0.3s ease;
+    }
+    .delete-button:hover {
+      color: #a00;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sacola de Compras</h1>
+  <div id="cartContainer">
+    <!-- A tabela de produtos será gerada aqui -->
+  </div>
+  <div style="text-align: center;">
+    <a href="catalogo.html" class="button">Continuar Comprando</a>
+    <a href="#" class="button" id="finalizeButton">Processar Pedido</a>
+  </div>
+  <script>
+    // Função para gerar e exibir a tabela de itens do carrinho
+    function updateCartDisplay() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const cartContainer = document.getElementById('cartContainer');
+      
+      if(cart.length === 0) {
+        cartContainer.innerHTML = "<p>Sua sacola está vazia.</p>";
+        document.getElementById('finalizeButton').style.display = 'none';
+        return;
+      }
+      
+      let tableHTML = '<table><thead><tr>' +
+                      '<th>Produto</th>' +
+                      '<th>Preço</th>' +
+                      '<th>Quantidade</th>' +
+                      '<th>Total</th>' +
+                      '<th>Ação</th>' +
+                      '</tr></thead><tbody>';
+      let grandTotal = 0;
+      
+      cart.forEach(item => {
+        tableHTML += `<tr>
+          <td>${item.name}</td>
+          <td>R$${parseFloat(item.price).toFixed(2)}</td>
+          <td>
+            <input type="number" class="cart-qty" data-name="${item.name}" value="${item.qty}" min="0" onchange="updateQuantity(this)">
+          </td>
+          <td>R$${(item.price * item.qty).toFixed(2)}</td>
+          <td>
+            <button class="delete-button" onclick="removeFromCart('${item.name}')"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>`;
+        grandTotal += item.price * item.qty;
+      });
+      
+      tableHTML += `<tr>
+         <td colspan="3" style="text-align:right;"><strong>Total Geral:</strong></td>
+         <td colspan="2"><strong>R$${grandTotal.toFixed(2)}</strong></td>
+      </tr>`;
+      tableHTML += '</tbody></table>';
+      
+      cartContainer.innerHTML = tableHTML;
+      document.getElementById('finalizeButton').style.display = 'inline-block';
+    }
+    
+    // Função chamada quando o usuário altera a quantidade na sacola
+    function updateQuantity(input) {
+      const newQty = parseInt(input.value) || 0;
+      const productName = input.getAttribute('data-name');
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const index = cart.findIndex(item => item.name === productName);
+      if(index !== -1) {
+        if (newQty <= 0) {
+          // Se a nova quantidade for zero, removemos o item do carrinho
+          cart.splice(index, 1);
+        } else {
+          // Atualiza a quantidade e o total
+          cart[index].qty = newQty;
+          cart[index].total = cart[index].price * newQty;
+        }
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartDisplay(); // Atualiza a exibição da tabela
+      }
+    }
+    
+    // Função para remover um item do carrinho ao clicar no botão de exclusão
+    function removeFromCart(productName) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const index = cart.findIndex(item => item.name === productName);
+      if (index !== -1) {
+        cart.splice(index, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartDisplay();
+      }
+    }
+    
+    // Atualiza a exibição do carrinho ao carregar a página
+    updateCartDisplay();
+    
+    // Botão Finalizar Pedido: envia o pedido via WhatsApp
+    document.getElementById('finalizeButton').addEventListener('click', function(e) {
+      e.preventDefault();
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      if(cart.length === 0) return;
+      let message = "Pedido:\n";
+      cart.forEach(item => {
+        message += `${item.name} | Quantidade: ${item.qty} | Total: R$${(item.price * item.qty).toFixed(2)}\n`;
+      });
+      const whatsappURL = "https://wa.me/5537999139844?text=" + encodeURIComponent(message);
+      // Opcional: Limpar o carrinho após finalização
+      // localStorage.removeItem('cart');
+      window.location.href = whatsappURL;
+    });
+  </script>
+</body>
+</html>
